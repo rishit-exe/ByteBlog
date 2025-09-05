@@ -2,7 +2,7 @@
 
 🌐 **Live Demo:** [BlogByte](https://thebyteblog.vercel.app/)
 
-A feature-rich, modern blog platform built with Next.js 15, Supabase, and NextAuth. Features include user authentication, markdown editing, categories, tags, and a beautiful dark theme.
+A feature-rich, modern blog platform built with Next.js 15, Supabase, and NextAuth. Features include user authentication, markdown editing, categories, tags, and a beautiful dark theme with **buttery smooth animation scroll** powered by **Lenis integration**.
 
 ## Features
 
@@ -13,6 +13,8 @@ A feature-rich, modern blog platform built with Next.js 15, Supabase, and NextAu
 - 🚀 **Modern Stack** - Next.js 15, TypeScript, Tailwind CSS, Supabase
 - 🎨 **Dark Theme** - Elegant dark design with particle effects
 - 🔍 **Navigation** - Quick navigation and table of contents for posts
+- ✨ **Buttery Smooth Scroll** - Enhanced scrolling experience with Lenis integration
+- ❤️ **Engagement Features** - Like and bookmark posts with real-time updates
 
 ## Getting Started
 
@@ -23,15 +25,16 @@ A feature-rich, modern blog platform built with Next.js 15, Supabase, and NextAu
 
 ### Database Setup
 
-Run the SQL commands in `database-setup.sql` in your Supabase SQL editor to create the required tables and policies.
+Run the SQL commands in `database-setup.sql` in your Supabase SQL editor to create the required tables, policies, and indexes for the complete ByteBlog functionality.
 
 ### Environment Variables
 
-The `.env.local` file should contain:
+The `.env` file should contain:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-secret-key-here-change-in-production
 ```
