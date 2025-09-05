@@ -78,7 +78,16 @@ const MobileQuickNav = forwardRef<MobileQuickNavRef, MobileQuickNavProps>(({
     posts.forEach(post => {
       if (post.tags && Array.isArray(post.tags)) {
         post.tags.forEach(tag => {
-          tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+          // Clean the tag by removing extra characters and quotes
+          const cleanTag = tag
+            .replace(/^#+/, '') // Remove leading # symbols
+            .replace(/^["\[]+/, '') // Remove leading quotes and brackets
+            .replace(/["\]]+$/, '') // Remove trailing quotes and brackets
+            .trim(); // Remove whitespace
+          
+          if (cleanTag) {
+            tagCounts.set(cleanTag, (tagCounts.get(cleanTag) || 0) + 1);
+          }
         });
       }
     });

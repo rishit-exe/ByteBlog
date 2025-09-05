@@ -20,9 +20,9 @@ export function PostCard({
 	const { data: session } = useSession();
 	const router = useRouter();
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
-	// Mock data - you can replace with real data from your database
-	const mockCategory = "Technology"; // This should come from your post data
-	const mockTags = ["JavaScript", "React", "Next.js"]; // This should come from your post data
+	// Use actual post data
+	const postCategory = post.category;
+	const postTags = post.tags || [];
 
 	const handleDelete = async () => {
 		try {
@@ -98,21 +98,30 @@ export function PostCard({
 				
 				{/* Category and Tags */}
 				<div className="flex items-center gap-4 mt-2 mb-3">
-					{mockCategory && (
+					{postCategory && (
 						<div className="flex items-center gap-1 text-sm text-gray-300">
 							<FolderOpen className="w-3 h-3" />
-							<span>{mockCategory}</span>
+							<span>{postCategory}</span>
 						</div>
 					)}
-					{mockTags.length > 0 && (
+					{postTags.length > 0 && (
 						<div className="flex items-center gap-1 text-sm text-gray-300">
 							<Tag className="w-3 h-3" />
 							<div className="flex gap-1">
-								{mockTags.map((tag, index) => (
-									<span key={tag} className="text-blue-300">
-										#{tag}{index < mockTags.length - 1 ? ',' : ''}
-									</span>
-								))}
+								{postTags.map((tag, index) => {
+									// Clean the tag for display (same logic as in QuickNavigation)
+									const cleanTag = tag
+										.replace(/^#+/, '') // Remove leading # symbols
+										.replace(/^["\[]+/, '') // Remove leading quotes and brackets
+										.replace(/["\]]+$/, '') // Remove trailing quotes and brackets
+										.trim(); // Remove whitespace
+									
+									return (
+										<span key={tag} className="text-blue-300">
+											#{cleanTag}{index < postTags.length - 1 ? ',' : ''}
+										</span>
+									);
+								})}
 							</div>
 						</div>
 					)}

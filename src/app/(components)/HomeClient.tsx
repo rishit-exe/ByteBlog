@@ -35,6 +35,8 @@ export default function HomeClient({ posts }: HomeClientProps) {
 
   // Update context with posts when component mounts
   useEffect(() => {
+    console.log('🏠 HomeClient - Received posts:', posts.length);
+    console.log('🏠 HomeClient - Posts details:', posts.map(p => ({ id: p.id, title: p.title, author: p.author })));
     setPosts(posts);
   }, [posts, setPosts]);
 
@@ -58,19 +60,37 @@ export default function HomeClient({ posts }: HomeClientProps) {
   // Filter posts based on selected filters
   const filteredPosts = useMemo(() => {
     let filtered = posts;
+    
+    console.log('🔍 HomeClient - Filtering posts. Total posts:', posts.length);
+    console.log('🔍 HomeClient - Selected categories:', selectedCategories);
+    console.log('🔍 HomeClient - Selected tags:', selectedTags);
+    console.log('🔍 HomeClient - Selected archives:', selectedArchives);
 
     // Filter by categories (OR logic - post matches if it has ANY selected category)
     if (selectedCategories.length > 0) {
       filtered = filtered.filter(post => 
         post.category && selectedCategories.includes(post.category)
       );
+      console.log('🔍 HomeClient - After category filter:', filtered.length);
     }
 
     // Filter by tags (OR logic - post matches if it has ANY selected tag)
     if (selectedTags.length > 0) {
-      filtered = filtered.filter(post => 
-        post.tags && post.tags.some(tag => selectedTags.includes(tag))
-      );
+      filtered = filtered.filter(post => {
+        if (!post.tags) return false;
+        
+        // Clean tags for comparison (same logic as in QuickNavigation)
+        const cleanTags = post.tags.map(tag => 
+          tag
+            .replace(/^#+/, '') // Remove leading # symbols
+            .replace(/^["\[]+/, '') // Remove leading quotes and brackets
+            .replace(/["\]]+$/, '') // Remove trailing quotes and brackets
+            .trim() // Remove whitespace
+        );
+        
+        return cleanTags.some(cleanTag => selectedTags.includes(cleanTag));
+      });
+      console.log('🔍 HomeClient - After tag filter:', filtered.length);
     }
 
     // Filter by archives (OR logic - post matches if it's from ANY selected archive)
@@ -80,8 +100,10 @@ export default function HomeClient({ posts }: HomeClientProps) {
         const postMonthYear = postDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         return selectedArchives.includes(postMonthYear);
       });
+      console.log('🔍 HomeClient - After archive filter:', filtered.length);
     }
 
+    console.log('✅ HomeClient - Final filtered posts:', filtered.length);
     return filtered;
   }, [posts, selectedCategories, selectedTags, selectedArchives]);
 
@@ -146,13 +168,16 @@ export default function HomeClient({ posts }: HomeClientProps) {
           </div>
           
           <ul className="space-y-4">
-            {filteredPosts.map((post) => (
-              <PostCard 
-                key={post.id} 
-                post={post} 
-                engagementData={engagementData[post.id] || { likeCount: 0, bookmarkCount: 0 }}
-              />
-            ))}
+            {filteredPosts.map((post) => {
+              console.log('🎨 HomeClient - Rendering post:', post.id, post.title);
+              return (
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  engagementData={engagementData[post.id] || { likeCount: 0, bookmarkCount: 0 }}
+                />
+              );
+            })}
           </ul>
           {filteredPosts.length === 0 && (
             <div className="text-center text-gray-400">

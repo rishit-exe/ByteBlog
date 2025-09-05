@@ -16,16 +16,22 @@ interface SessionUser {
 export async function fetchPosts(): Promise<BlogPost[]> {
   const supabase = createServerSupabase();
   
+  console.log('🔍 fetchPosts - Starting to fetch posts...');
+  console.log('🔍 fetchPosts - Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+  
   const { data, error } = await supabase
     .from("posts")
     .select("id, title, content, author, user_id, category, tags, created_at, updated_at")
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Error fetching posts:", error);
+    console.error("❌ Error fetching posts:", error);
     return [];
   }
 
+  console.log('✅ fetchPosts - Successfully fetched posts:', data?.length || 0);
+  console.log('📝 fetchPosts - Posts data:', data?.map(p => ({ id: p.id, title: p.title, author: p.author })));
+  
   return data || [];
 }
 
