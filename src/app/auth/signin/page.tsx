@@ -26,8 +26,8 @@ export default function SignInPage() {
     // Trigger animations on mount
     setIsAnimated(true);
     
-    // Add background blur to body
-    document.body.style.overflow = 'hidden';
+    // Allow scrolling on auth pages
+    document.body.style.overflow = 'auto';
     
     // Cleanup on unmount
     return () => {
@@ -75,9 +75,9 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="min-h-screen z-50 relative">
       {/* Animated Background with Blur Effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-pink-900/20">
+      <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-pink-900/20">
         {/* Background Blur Overlay */}
         <div 
           className={`absolute inset-0 backdrop-blur-md bg-black/30 transition-all duration-1000 ${
@@ -111,7 +111,7 @@ export default function SignInPage() {
       </div>
 
       {/* 3D Login Container */}
-      <div className="relative z-10 h-full flex items-center justify-center p-4">
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div 
           className={`relative w-full max-w-md transform transition-all duration-1000 ${
             isAnimated 
@@ -193,7 +193,7 @@ export default function SignInPage() {
                       Signing In...
                     </div>
                   ) : (
-                    "Sign In"
+                    "Login"
                   )}
                 </button>
 
@@ -229,6 +229,7 @@ export default function SignInPage() {
           </div>
         </div>
       </div>
+
 
       <style jsx>{`
         @keyframes float {

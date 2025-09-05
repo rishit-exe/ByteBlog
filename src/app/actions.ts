@@ -16,23 +16,32 @@ interface SessionUser {
 export async function fetchPosts(): Promise<BlogPost[]> {
   const supabase = createServerSupabase();
   
-  console.log('🔍 fetchPosts - Starting to fetch posts...');
-  console.log('🔍 fetchPosts - Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-  
+  // Get all posts and then sort them manually to avoid RLS issues
   const { data, error } = await supabase
     .from("posts")
-    .select("id, title, content, author, user_id, category, tags, created_at, updated_at")
-    .order("created_at", { ascending: false });
+    .select("*");
 
   if (error) {
-    console.error("❌ Error fetching posts:", error);
+    console.error("Error fetching posts:", error);
     return [];
   }
 
-  console.log('✅ fetchPosts - Successfully fetched posts:', data?.length || 0);
-  console.log('📝 fetchPosts - Posts data:', data?.map(p => ({ id: p.id, title: p.title, author: p.author })));
+  // Sort by created_at descending and filter to only the columns we need
+  const sortedPosts = (data || [])
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map(post => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author: post.author,
+      user_id: post.user_id,
+      category: post.category,
+      tags: post.tags,
+      created_at: post.created_at,
+      updated_at: post.updated_at
+    }));
   
-  return data || [];
+  return sortedPosts;
 }
 
 export async function createPost(formData: FormData): Promise<{ error?: string }> {

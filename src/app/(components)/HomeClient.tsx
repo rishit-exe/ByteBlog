@@ -35,8 +35,6 @@ export default function HomeClient({ posts }: HomeClientProps) {
 
   // Update context with posts when component mounts
   useEffect(() => {
-    console.log('🏠 HomeClient - Received posts:', posts.length);
-    console.log('🏠 HomeClient - Posts details:', posts.map(p => ({ id: p.id, title: p.title, author: p.author })));
     setPosts(posts);
   }, [posts, setPosts]);
 
@@ -60,18 +58,12 @@ export default function HomeClient({ posts }: HomeClientProps) {
   // Filter posts based on selected filters
   const filteredPosts = useMemo(() => {
     let filtered = posts;
-    
-    console.log('🔍 HomeClient - Filtering posts. Total posts:', posts.length);
-    console.log('🔍 HomeClient - Selected categories:', selectedCategories);
-    console.log('🔍 HomeClient - Selected tags:', selectedTags);
-    console.log('🔍 HomeClient - Selected archives:', selectedArchives);
 
     // Filter by categories (OR logic - post matches if it has ANY selected category)
     if (selectedCategories.length > 0) {
       filtered = filtered.filter(post => 
         post.category && selectedCategories.includes(post.category)
       );
-      console.log('🔍 HomeClient - After category filter:', filtered.length);
     }
 
     // Filter by tags (OR logic - post matches if it has ANY selected tag)
@@ -90,7 +82,6 @@ export default function HomeClient({ posts }: HomeClientProps) {
         
         return cleanTags.some(cleanTag => selectedTags.includes(cleanTag));
       });
-      console.log('🔍 HomeClient - After tag filter:', filtered.length);
     }
 
     // Filter by archives (OR logic - post matches if it's from ANY selected archive)
@@ -100,10 +91,8 @@ export default function HomeClient({ posts }: HomeClientProps) {
         const postMonthYear = postDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         return selectedArchives.includes(postMonthYear);
       });
-      console.log('🔍 HomeClient - After archive filter:', filtered.length);
     }
 
-    console.log('✅ HomeClient - Final filtered posts:', filtered.length);
     return filtered;
   }, [posts, selectedCategories, selectedTags, selectedArchives]);
 
@@ -121,8 +110,8 @@ export default function HomeClient({ posts }: HomeClientProps) {
   const hasActiveFilters = selectedCategories.length > 0 || selectedTags.length > 0 || selectedArchives.length > 0;
 
   return (
-    <main className="max-w-7xl mx-auto p-4">
-      <div className="flex gap-8">
+    <main className="max-w-7xl mx-auto p-2 sm:p-4">
+      <div className="flex gap-4 lg:gap-8">
         {/* Left Sidebar - Quick Navigation */}
         <aside className="hidden lg:block flex-shrink-0">
           <QuickNavigation 
@@ -137,47 +126,46 @@ export default function HomeClient({ posts }: HomeClientProps) {
         </aside>
         
         {/* Blog Posts Section */}
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-bold text-white">Blog Posts</h2>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Blog Posts</h2>
               {/* Mobile Quick Nav Button */}
               <button
                 onClick={() => setIsQuickNavOpen(!isQuickNavOpen)}
-                className="lg:hidden flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all duration-300"
+                className="lg:hidden flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all duration-300 w-fit"
                 aria-label="Toggle quick navigation"
               >
                 {isQuickNavOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                 <span className="text-sm">Filters</span>
               </button>
               {hasActiveFilters && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                  <span className="text-xs sm:text-sm text-gray-400">
                     {filteredPosts.length} of {posts.length} posts
                   </span>
                   <button
                     onClick={clearFilters}
-                    className="text-xs text-blue-400 hover:text-blue-300 underline"
+                    className="text-xs text-blue-400 hover:text-blue-300 underline w-fit"
                   >
                     Clear filters
                   </button>
                 </div>
               )}
             </div>
-            <AiButton href="/new" />
+            <div className="w-fit">
+              <AiButton href="/new" />
+            </div>
           </div>
           
           <ul className="space-y-4">
-            {filteredPosts.map((post) => {
-              console.log('🎨 HomeClient - Rendering post:', post.id, post.title);
-              return (
-                <PostCard 
-                  key={post.id} 
-                  post={post} 
-                  engagementData={engagementData[post.id] || { likeCount: 0, bookmarkCount: 0 }}
-                />
-              );
-            })}
+            {filteredPosts.map((post) => (
+              <PostCard 
+                key={post.id} 
+                post={post} 
+                engagementData={engagementData[post.id] || { likeCount: 0, bookmarkCount: 0 }}
+              />
+            ))}
           </ul>
           {filteredPosts.length === 0 && (
             <div className="text-center text-gray-400">

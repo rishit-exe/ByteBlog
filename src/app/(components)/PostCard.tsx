@@ -65,9 +65,9 @@ export function PostCard({
 
 	return (
 		<>
-			<li className="border border-white/10 rounded-lg p-4 bg-white/5 backdrop-blur-sm">
-				<div className="flex items-start justify-between mb-3">
-					<h2 className="text-lg font-medium text-white flex-1 pr-4">
+			<li className="border border-white/10 rounded-lg p-3 sm:p-4 bg-white/5 backdrop-blur-sm">
+				<div className="flex flex-col sm:flex-row sm:items-start justify-between mb-3 gap-2 sm:gap-4">
+					<h2 className="text-base sm:text-lg font-medium text-white flex-1">
 						<Link href={`/posts/${post.id}`} className="hover:text-blue-300 transition-colors">
 							{post.title}
 						</Link>
@@ -77,13 +77,13 @@ export function PostCard({
 						<div className="flex gap-2 flex-shrink-0">
 							<Link 
 								href={`/edit/${post.id}`} 
-								className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 rounded-md text-sm font-medium transition-all duration-200 border border-blue-500/30 hover:border-blue-500/50"
+								className="px-2 sm:px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 border border-blue-500/30 hover:border-blue-500/50"
 							>
 								Edit
 							</Link>
 							<button 
 								onClick={() => setShowDeleteModal(true)}
-								className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 rounded-md text-sm font-medium transition-all duration-200 border border-red-500/30 hover:border-red-500/50"
+								className="px-2 sm:px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 border border-red-500/30 hover:border-red-500/50"
 							>
 								Delete
 							</button>
@@ -97,17 +97,17 @@ export function PostCard({
 				</div>
 				
 				{/* Category and Tags */}
-				<div className="flex items-center gap-4 mt-2 mb-3">
+				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 mb-3">
 					{postCategory && (
-						<div className="flex items-center gap-1 text-sm text-gray-300">
+						<div className="flex items-center gap-1 text-xs sm:text-sm text-gray-300">
 							<FolderOpen className="w-3 h-3" />
 							<span>{postCategory}</span>
 						</div>
 					)}
 					{postTags.length > 0 && (
-						<div className="flex items-center gap-1 text-sm text-gray-300">
+						<div className="flex items-center gap-1 text-xs sm:text-sm text-gray-300">
 							<Tag className="w-3 h-3" />
-							<div className="flex gap-1">
+							<div className="flex flex-wrap gap-1">
 								{postTags.map((tag, index) => {
 									// Clean the tag for display (same logic as in QuickNavigation)
 									const cleanTag = tag
@@ -127,8 +127,8 @@ export function PostCard({
 					)}
 				</div>
 				
-				<div className="flex items-center justify-between mt-1">
-					<p className="text-sm text-gray-400">
+				<div className="flex flex-col sm:flex-row sm:items-center justify-between mt-1 gap-1 sm:gap-2">
+					<p className="text-xs sm:text-sm text-gray-400">
 						by {post.author} on {format(new Date(post.created_at), "PPpp")}
 					</p>
 					{/* Show engagement metrics for authors */}
