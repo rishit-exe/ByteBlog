@@ -26,8 +26,12 @@ export function PostCard({
 
 	const handleDelete = async () => {
 		try {
-			await deletePost(post.id);
-			router.refresh(); // Refresh the page to update the post list
+			const result = await deletePost(post.id);
+			if (result.error) {
+				alert(result.error);
+			} else if (result.success) {
+				router.refresh(); // Refresh the page to update the post list
+			}
 		} catch (error) {
 			console.error("Error deleting post:", error);
 			alert("Failed to delete post. Please try again.");

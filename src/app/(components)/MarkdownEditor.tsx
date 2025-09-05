@@ -3,6 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Eye, EyeOff, FileText, Eye as EyeIcon } from "lucide-react";
 import { useLenis } from '@studio-freight/react-lenis';
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import rehypeHighlight from "rehype-highlight";
 
 interface MarkdownEditorProps {
   value: string;
@@ -336,7 +340,112 @@ End your post here...`}
             >
               {value.trim() ? (
                 <div className="prose prose-invert prose-sm max-w-none">
-                  {renderMarkdownPreview(value)}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    rehypePlugins={[rehypeHighlight]}
+                    components={{
+                      h1: ({ children }) => (
+                        <h1 className="text-2xl font-bold text-white mb-3 mt-6">
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-xl font-bold text-white mb-2 mt-5">
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-bold text-white mb-2 mt-4">
+                          {children}
+                        </h3>
+                      ),
+                      h4: ({ children }) => (
+                        <h4 className="text-base font-bold text-white mb-2 mt-3">
+                          {children}
+                        </h4>
+                      ),
+                      h5: ({ children }) => (
+                        <h5 className="text-sm font-bold text-white mb-2 mt-3">
+                          {children}
+                        </h5>
+                      ),
+                      h6: ({ children }) => (
+                        <h6 className="text-xs font-bold text-white mb-2 mt-3">
+                          {children}
+                        </h6>
+                      ),
+                      p: ({ children }) => (
+                        <p className="mb-2 text-gray-300 leading-relaxed">
+                          {children}
+                        </p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc ml-4 mb-2 space-y-1 text-gray-300">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal ml-4 mb-2 space-y-1 text-gray-300">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-gray-300">
+                          {children}
+                        </li>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-blue-500 pl-4 my-2 italic text-gray-400 bg-white/5 p-2 rounded-r">
+                          {children}
+                        </blockquote>
+                      ),
+                      code: ({ children, className }) => {
+                        const isInline = !className;
+                        if (isInline) {
+                          return (
+                            <code className="bg-gray-800/50 text-blue-300 px-1 py-0.5 rounded text-sm font-mono">
+                              {children}
+                            </code>
+                          );
+                        }
+                        return (
+                          <code className={`text-sm font-mono text-gray-300 ${className || ''}`}>
+                            {children}
+                          </code>
+                        );
+                      },
+                      pre: ({ children }) => (
+                        <pre className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 overflow-x-auto my-2">
+                          {children}
+                        </pre>
+                      ),
+                      a: ({ children, href }) => (
+                        <a 
+                          href={href} 
+                          className="text-blue-400 hover:text-blue-300 underline" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-bold text-white">
+                          {children}
+                        </strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className="italic text-gray-200">
+                          {children}
+                        </em>
+                      ),
+                      hr: () => (
+                        <hr className="my-4 border-gray-600" />
+                      ),
+                    }}
+                  >
+                    {value}
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <div className="text-gray-500 text-center py-8">

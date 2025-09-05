@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Eye, EyeOff, User, Mail, Lock, Sparkles, UserPlus } from "lucide-react";
 import bcrypt from "bcryptjs";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import SuccessModal from "../../(components)/SuccessModal";
 
 export default function SignUpPage() {
   const [name, setName] = useState("");
@@ -18,6 +19,7 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isAnimated, setIsAnimated] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -59,7 +61,14 @@ export default function SignUpPage() {
     setIsLoading(true);
     setError("");
 
-    // Validation
+    // Email validation
+    if (!email.includes('@')) {
+      setError("Please enter a valid email address with @ symbol");
+      setIsLoading(false);
+      return;
+    }
+
+    // Password validation
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setIsLoading(false);
@@ -68,6 +77,14 @@ export default function SignUpPage() {
 
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
+      setIsLoading(false);
+      return;
+    }
+
+    // Check for special symbol in password
+    const specialSymbols = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+    if (!specialSymbols.test(password)) {
+      setError("Password must contain at least 1 special symbol (!@#$%^&*()_+-=[]{}|;':\",./<>?)");
       setIsLoading(false);
       return;
     }
@@ -94,7 +111,7 @@ export default function SignUpPage() {
       if (!response.ok) {
         setError(data.error || "Something went wrong");
       } else {
-        router.push("/auth/signin?message=Account created successfully");
+        setShowSuccessModal(true);
       }
     } catch (error) {
       setError("Something went wrong. Please try again.");
@@ -212,7 +229,7 @@ export default function SignUpPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password (min. 6 characters)"
+                    placeholder="Password (6+ chars + 1 special symbol)"
                     required
                     className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 hover:bg-white/10"
                   />
@@ -296,6 +313,18 @@ export default function SignUpPage() {
         </div>
       </div>
 
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Account Created Successfully!"
+        message="Welcome to ByteBlog! Your account has been created successfully. You can now sign in to start creating amazing blog posts."
+        buttonText="Go to Sign In"
+        onButtonClick={() => {
+          setShowSuccessModal(false);
+          router.push("/auth/signin");
+        }}
+      />
 
       <style jsx>{`
         @keyframes float {

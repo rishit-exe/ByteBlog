@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useSession } from "next-auth/react";
 import { getPostEngagement } from "@/app/actions";
 import EngagementButtons from "./EngagementButtons";
@@ -10,7 +10,7 @@ interface PostCardClientProps {
   isAuthor: boolean;
 }
 
-export default function PostCardClient({ postId, isAuthor }: PostCardClientProps) {
+const PostCardClient = memo(function PostCardClient({ postId, isAuthor }: PostCardClientProps) {
   const { data: session } = useSession();
   const [engagement, setEngagement] = useState({
     likeCount: 0,
@@ -31,8 +31,9 @@ export default function PostCardClient({ postId, isAuthor }: PostCardClientProps
       }
     };
 
+    // Always fetch engagement data (like counts should be visible to everyone)
     fetchEngagement();
-  }, [postId, session?.user]);
+  }, [postId, session?.user?.id]); // Use session?.user?.id instead of session?.user
 
   // Don't show engagement buttons for authors or if loading
   if (isAuthor || isLoading) {
@@ -47,4 +48,6 @@ export default function PostCardClient({ postId, isAuthor }: PostCardClientProps
       initialIsBookmarked={engagement.isBookmarked}
     />
   );
-}
+});
+
+export default PostCardClient;

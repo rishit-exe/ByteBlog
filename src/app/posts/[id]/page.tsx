@@ -17,6 +17,11 @@ async function getPost(id: string) {
     .select("id,title,content,author,created_at,category,tags")
     .eq("id", id)
     .single();
+  
+  // Debug: Log the raw created_at value
+  console.log("Raw created_at from DB:", data?.created_at);
+  console.log("Parsed date:", new Date(data?.created_at));
+  
   return data as BlogPost;
 }
 

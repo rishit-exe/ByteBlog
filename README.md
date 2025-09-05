@@ -1,5 +1,7 @@
 ## ByteBlog - Modern Blog Platform
 
+🌐 **Live Demo:** [BlogByte](https://thebyteblog.vercel.app/)
+
 A feature-rich, modern blog platform built with Next.js 15, Supabase, and NextAuth. Features include user authentication, markdown editing, categories, tags, and a beautiful dark theme.
 
 ## Features

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import { Heart, Bookmark } from "lucide-react";
 import { toggleLike, toggleBookmark } from "@/app/actions";
 
@@ -11,7 +11,7 @@ interface EngagementButtonsProps {
   initialIsBookmarked: boolean;
 }
 
-export default function EngagementButtons({
+const EngagementButtons = memo(function EngagementButtons({
   postId,
   initialLikeCount,
   initialIsLiked,
@@ -22,7 +22,7 @@ export default function EngagementButtons({
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLike = async () => {
+  const handleLike = useCallback(async () => {
     if (isLoading) return;
     
     setIsLoading(true);
@@ -40,9 +40,9 @@ export default function EngagementButtons({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [postId, isLoading]);
 
-  const handleBookmark = async () => {
+  const handleBookmark = useCallback(async () => {
     if (isLoading) return;
     
     setIsLoading(true);
@@ -59,7 +59,7 @@ export default function EngagementButtons({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [postId, isLoading]);
 
   return (
     <div className="flex items-center gap-3">
@@ -98,4 +98,6 @@ export default function EngagementButtons({
       </button>
     </div>
   );
-}
+});
+
+export default EngagementButtons;

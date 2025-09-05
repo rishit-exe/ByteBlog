@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, User, PenTool, LogOut, Bookmark, Trash2, Menu, X } from "lucide-react";
-import DeleteAccountModal from "./DeleteAccountModal";
+import { ChevronDown, User, PenTool, LogOut, Bookmark, Menu, X } from "lucide-react";
 import { useMobileNav } from "./MobileNavContext";
 
 export default function PillNav() {
@@ -13,7 +12,6 @@ export default function PillNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   
@@ -146,7 +144,7 @@ export default function PillNav() {
 
             {/* Profile Dropdown */}
             {isProfileOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg shadow-lg z-50">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg shadow-lg z-50">
                 <div className="p-2">
                   <Link
                     href="/new"
@@ -164,17 +162,23 @@ export default function PillNav() {
                     <Bookmark size={16} />
                     Saved Posts
                   </Link>
-                  <div className="border-t border-white/20 my-1"></div>
-                  <button
-                    onClick={() => {
-                      setIsProfileOpen(false);
-                      setShowDeleteModal(true);
-                    }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                  <Link
+                    href="/myposts"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white hover:bg-white/10 rounded-md transition-colors"
+                    onClick={() => setIsProfileOpen(false)}
                   >
-                    <Trash2 size={16} />
-                    Delete Account
-                  </button>
+                    <PenTool size={16} />
+                    My Posts
+                  </Link>
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white hover:bg-white/10 rounded-md transition-colors"
+                    onClick={() => setIsProfileOpen(false)}
+                  >
+                    <User size={16} />
+                    Profile Settings
+                  </Link>
+                  <div className="border-t border-white/20 my-1"></div>
                   <button
                     onClick={async () => {
                       setIsProfileOpen(false);
@@ -267,12 +271,6 @@ export default function PillNav() {
         </div>
       )}
 
-      {/* Delete Account Modal */}
-      <DeleteAccountModal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        userEmail={session?.user?.email || ""}
-      />
     </nav>
   );
 }

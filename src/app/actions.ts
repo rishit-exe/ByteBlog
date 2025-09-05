@@ -29,19 +29,55 @@ export async function fetchPosts(): Promise<BlogPost[]> {
   // Sort by created_at descending and filter to only the columns we need
   const sortedPosts = (data || [])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map(post => ({
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      author: post.author,
-      user_id: post.user_id,
-      category: post.category,
-      tags: post.tags,
-      created_at: post.created_at,
-      updated_at: post.updated_at
-    }));
+    .map(post => {
+      // Debug: Log the raw created_at value for home page
+      console.log("Home page - Raw created_at from DB:", post.created_at);
+      console.log("Home page - Parsed date:", new Date(post.created_at));
+      
+      return {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        author: post.author,
+        user_id: post.user_id,
+        category: post.category,
+        tags: post.tags,
+        created_at: post.created_at,
+        updated_at: post.updated_at
+      };
+    });
   
   return sortedPosts;
+}
+
+export async function fetchUserPosts(userId: string): Promise<BlogPost[]> {
+  const supabase = createServerSupabase();
+  
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching user posts:", error);
+    return [];
+  }
+
+  // Map to the specific columns we need
+  const userPosts = (data || []).map(post => ({
+    id: post.id,
+    title: post.title,
+    content: post.content,
+    author: post.author,
+    user_id: post.user_id,
+    category: post.category,
+    tags: post.tags,
+    created_at: post.created_at,
+    updated_at: post.updated_at
+  }));
+  
+  return userPosts;
 }
 
 export async function createPost(formData: FormData): Promise<{ error?: string }> {
@@ -136,11 +172,11 @@ export async function updatePost(id: string, formData: FormData): Promise<{ erro
   redirect(`/posts/${id}`);
 }
 
-export async function deletePost(id: string): Promise<{ error?: string }> {
+export async function deletePost(id: string): Promise<{ error?: string; success?: boolean }> {
   const session = await getServerSession(authOptions);
   
   if (!session || !session.user) {
-    redirect("/auth/signin");
+    return { error: "You must be logged in to delete posts" };
   }
 
   const supabase = createServerSupabase();
@@ -167,7 +203,7 @@ export async function deletePost(id: string): Promise<{ error?: string }> {
   }
 
   revalidatePath("/");
-  redirect("/");
+  return { success: true };
 }
 
 export async function getPost(id: string): Promise<BlogPost | null> {
@@ -185,6 +221,108 @@ export async function getPost(id: string): Promise<BlogPost | null> {
   }
 
   return data;
+}
+
+// Profile management actions
+export async function updateProfile(profileData: { name: string; email: string }): Promise<{ error?: string; success?: boolean }> {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user) {
+    return { error: "You must be logged in to update your profile" };
+  }
+
+  const supabase = createServerSupabase();
+  
+  try {
+    // Update user profile in users table
+    const { error: userError } = await supabase
+      .from("users")
+      .update({
+        name: profileData.name,
+        email: profileData.email,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", (session.user as SessionUser).id);
+
+    if (userError) {
+      console.error("Error updating user profile:", userError);
+      return { error: "Failed to update profile" };
+    }
+
+    // Update posts author field if name changed
+    if (profileData.name !== session.user.name) {
+      const { error: postsError } = await supabase
+        .from("posts")
+        .update({ author: profileData.name })
+        .eq("user_id", (session.user as SessionUser).id);
+
+      if (postsError) {
+        console.error("Error updating posts author:", postsError);
+        // Don't fail the entire operation for this
+      }
+    }
+
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return { error: "Failed to update profile" };
+  }
+}
+
+export async function changePassword(passwordData: { currentPassword: string; newPassword: string }): Promise<{ error?: string; success?: boolean }> {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user) {
+    return { error: "You must be logged in to change your password" };
+  }
+
+  const supabase = createServerSupabase();
+  
+  try {
+    // Get the user's current password hash from the database
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("password")
+      .eq("id", (session.user as SessionUser).id)
+      .single();
+
+    if (userError || !userData) {
+      console.error("Error fetching user data:", userError);
+      return { error: "Failed to verify current password" };
+    }
+
+    // Verify current password using bcrypt
+    const bcrypt = require('bcryptjs');
+    const isCurrentPasswordValid = await bcrypt.compare(passwordData.currentPassword, userData.password);
+
+    if (!isCurrentPasswordValid) {
+      return { error: "Current password is incorrect" };
+    }
+
+    // Hash the new password
+    const saltRounds = 12;
+    const newPasswordHash = await bcrypt.hash(passwordData.newPassword, saltRounds);
+
+    // Update password in database
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ 
+        password: newPasswordHash,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", (session.user as SessionUser).id);
+
+    if (updateError) {
+      console.error("Error updating password:", updateError);
+      return { error: "Failed to update password" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return { error: "Failed to change password" };
+  }
 }
 
 export async function toggleLike(postId: string): Promise<{ error?: string; liked?: boolean }> {
@@ -322,41 +460,56 @@ export async function getPostEngagement(postId: string, userId?: string): Promis
 }> {
   const supabase = createServerSupabase();
 
-  // Get like count
-  const { count: likeCount } = await supabase
-    .from("likes")
-    .select("*", { count: "exact", head: true })
-    .eq("post_id", postId);
+  try {
+    // Get like count
+    const { count: likeCount, error: likeError } = await supabase
+      .from("likes")
+      .select("*", { count: "exact", head: true })
+      .eq("post_id", postId);
 
-  let isLiked = false;
-  let isBookmarked = false;
+    if (likeError) {
+      console.error("Error fetching like count:", likeError);
+    }
 
-  // Check if current user liked/bookmarked this post
-  if (userId) {
-    const [likeResult, bookmarkResult] = await Promise.all([
-      supabase
-        .from("likes")
-        .select("id")
-        .eq("post_id", postId)
-        .eq("user_id", userId)
-        .single(),
-      supabase
-        .from("bookmarks")
-        .select("id")
-        .eq("post_id", postId)
-        .eq("user_id", userId)
-        .single()
-    ]);
+    let isLiked = false;
+    let isBookmarked = false;
 
-    isLiked = !!likeResult.data;
-    isBookmarked = !!bookmarkResult.data;
+    // Check if current user liked/bookmarked this post
+    if (userId) {
+      const [likeResult, bookmarkResult] = await Promise.all([
+        supabase
+          .from("likes")
+          .select("id")
+          .eq("post_id", postId)
+          .eq("user_id", userId)
+          .single(),
+        supabase
+          .from("bookmarks")
+          .select("id")
+          .eq("post_id", postId)
+          .eq("user_id", userId)
+          .single()
+      ]);
+
+      isLiked = !!likeResult.data;
+      isBookmarked = !!bookmarkResult.data;
+    }
+
+    console.log(`Post ${postId} engagement:`, { likeCount: likeCount || 0, isLiked, isBookmarked });
+
+    return {
+      likeCount: likeCount || 0,
+      isLiked,
+      isBookmarked,
+    };
+  } catch (error) {
+    console.error("Error in getPostEngagement:", error);
+    return {
+      likeCount: 0,
+      isLiked: false,
+      isBookmarked: false,
+    };
   }
-
-  return {
-    likeCount: likeCount || 0,
-    isLiked,
-    isBookmarked,
-  };
 }
 
 export async function deleteUserAccount(confirmationText: string, userEmail: string): Promise<{ error?: string }> {

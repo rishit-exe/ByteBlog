@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import rehypeHighlight from "rehype-highlight";
 
 interface MarkdownRendererProps {
   content: string;
@@ -14,10 +18,9 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
     const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
     headings.forEach((heading, index) => {
       if (!heading.id) {
-        heading.id = `heading-${index}`;
+        const text = heading.textContent?.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]/g, '') || '';
+        heading.id = text || `heading-${index}`;
       }
-      // Remove scroll-mt since we're handling offset manually
-      // heading.classList.add('scroll-mt-20'); // Commented out to avoid conflicts
       
       // Add a subtle visual indicator for active headings
       heading.classList.add('relative');
@@ -67,202 +70,167 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
     };
   }, [content, activeHeadingId]);
 
-  const renderMarkdown = (content: string) => {
-    const lines = content.split('\n');
-    const elements = [];
-    let currentList = [];
-    let i = 0;
-    let inCodeBlock = false;
-    let codeBlockContent = [];
-    let codeBlockLanguage = '';
-
-    while (i < lines.length) {
-      const line = lines[i];
-      
-      // Handle code blocks
-      if (line.startsWith('```') || (inCodeBlock && line.includes('```'))) {
-        if (!inCodeBlock) {
-          // Starting a code block
-          inCodeBlock = true;
-          codeBlockLanguage = line.substring(3).trim();
-          codeBlockContent = [];
-        } else {
-          // Ending a code block
-          inCodeBlock = false;
-          
-          // If the closing ``` is on the same line as code, extract the code part
-          if (line.includes('```')) {
-            const codePart = line.split('```')[0];
-            if (codePart.trim()) {
-              codeBlockContent.push(codePart);
-            }
+  useEffect(() => {
+    // Handle smooth scrolling to headings
+    const handleClick = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'A' && target.getAttribute('href')?.startsWith('#')) {
+        e.preventDefault();
+        const targetId = target.getAttribute('href')?.substring(1);
+        if (targetId) {
+          const element = document.getElementById(targetId);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+            setActiveHeadingId(targetId);
           }
-          
-          elements.push(
-            <div key={`code-${i}`} className="my-4">
-              {codeBlockLanguage && (
-                <div className="bg-gray-700/50 text-gray-300 text-xs px-3 py-1 rounded-t-lg border-b border-gray-600 font-mono">
-                  {codeBlockLanguage}
-                </div>
-              )}
-              <pre className={`bg-gray-800/50 border border-gray-700 ${codeBlockLanguage ? 'rounded-b-lg' : 'rounded-lg'} p-4 overflow-x-auto`}>
-                <code className={`text-sm font-mono text-gray-300 ${codeBlockLanguage ? `language-${codeBlockLanguage}` : ''}`}>
-                  {codeBlockContent.join('\n')}
-                </code>
-              </pre>
-            </div>
-          );
-          codeBlockContent = [];
-          codeBlockLanguage = '';
         }
-        i++;
-        continue;
       }
-      
-      if (inCodeBlock) {
-        codeBlockContent.push(line);
-        i++;
-        continue;
-      }
+    };
 
-      // Flush current list if we encounter a non-list item
-      if (currentList.length > 0 && !line.startsWith('- ') && !line.startsWith('* ') && !line.startsWith('1. ')) {
-        elements.push(
-          <ul key={`list-${i}`} className="list-disc ml-6 mb-4 space-y-1">
-            {currentList.map((item, idx) => (
-              <li key={idx} className="text-gray-300">{item}</li>
-            ))}
-          </ul>
-        );
-        currentList = [];
-      }
-
-      // Headings
-      if (line.startsWith('# ')) {
-        elements.push(<h1 key={i} className="text-3xl font-bold text-white mb-4 mt-8 first:mt-0">{line.substring(2)}</h1>);
-        i++;
-        continue;
-      }
-      if (line.startsWith('## ')) {
-        elements.push(<h2 key={i} className="text-2xl font-bold text-white mb-3 mt-7 first:mt-0">{line.substring(3)}</h2>);
-        i++;
-        continue;
-      }
-      if (line.startsWith('### ')) {
-        elements.push(<h3 key={i} className="text-xl font-bold text-white mb-3 mt-6 first:mt-0">{line.substring(4)}</h3>);
-        i++;
-        continue;
-      }
-      if (line.startsWith('#### ')) {
-        elements.push(<h4 key={i} className="text-lg font-bold text-white mb-2 mt-5 first:mt-0">{line.substring(5)}</h4>);
-        i++;
-        continue;
-      }
-      if (line.startsWith('##### ')) {
-        elements.push(<h5 key={i} className="text-base font-bold text-white mb-2 mt-4 first:mt-0">{line.substring(6)}</h5>);
-        i++;
-        continue;
-      }
-      if (line.startsWith('###### ')) {
-        elements.push(<h6 key={i} className="text-sm font-bold text-white mb-2 mt-4 first:mt-0">{line.substring(7)}</h6>);
-        i++;
-        continue;
-      }
-      
-      // Lists
-      if (line.startsWith('- ') || line.startsWith('* ')) {
-        currentList.push(line.substring(2));
-        i++;
-        continue;
-      }
-      if (line.startsWith('1. ')) {
-        currentList.push(line.substring(3));
-        i++;
-        continue;
-      }
-      
-      // Horizontal rules
-      if (line.trim() === '---' || line.trim() === '***' || line.trim() === '___' || 
-          (line.trim().length >= 3 && /^[-*_]+$/.test(line.trim()))) {
-        elements.push(<hr key={i} className="my-8 border-0 h-px bg-gradient-to-r from-transparent via-gray-500 to-transparent" />);
-        i++;
-        continue;
-      }
-      
-      // Blockquotes
-      if (line.startsWith('> ')) {
-        elements.push(
-          <blockquote key={i} className="border-l-4 border-blue-500 pl-4 my-4 italic text-gray-400 bg-white/5 p-3 rounded-r">
-            {line.substring(2)}
-          </blockquote>
-        );
-        i++;
-        continue;
-      }
-      
-      // Empty lines
-      if (line.trim() === '') {
-        elements.push(<div key={i} className="h-3"></div>);
-        i++;
-        continue;
-      }
-      
-      // Regular paragraphs with inline formatting
-      let processedLine = line
-        .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-      
-      // Handle inline code
-      if (processedLine.includes('`')) {
-        processedLine = processedLine.replace(/`([^`]+)`/g, '<code class="bg-gray-800/50 px-2 py-1 rounded text-sm font-mono text-blue-300">$1</code>');
-      }
-      
-      // Handle links
-      if (processedLine.includes('[') && processedLine.includes('](') && processedLine.includes(')')) {
-        processedLine = processedLine.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">$1</a>');
-      }
-      
-      elements.push(
-        <p key={i} className="mb-3 text-gray-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: processedLine }} />
-      );
-      i++;
-    }
-
-    // Handle case where code block is still open (no closing ```)
-    if (inCodeBlock && codeBlockContent.length > 0) {
-      elements.push(
-        <div key="code-unclosed" className="my-4">
-          {codeBlockLanguage && (
-            <div className="bg-gray-700/50 text-gray-300 text-xs px-3 py-1 rounded-t-lg border-b border-gray-600 font-mono">
-              {codeBlockLanguage}
-            </div>
-          )}
-          <pre className={`bg-gray-800/50 border border-gray-700 ${codeBlockLanguage ? 'rounded-b-lg' : 'rounded-lg'} p-4 overflow-x-auto`}>
-            <code className={`text-sm font-mono text-gray-300 ${codeBlockLanguage ? `language-${codeBlockLanguage}` : ''}`}>
-              {codeBlockContent.join('\n')}
-            </code>
-          </pre>
-        </div>
-      );
-    }
-
-    // Flush any remaining list items
-    if (currentList.length > 0) {
-      elements.push(
-        <ul key="final-list" className="list-disc ml-6 mb-4 space-y-1">
-          {currentList.map((item, idx) => (
-            <li key={idx} className="text-gray-300">{item}</li>
-          ))}
-        </ul>
-      );
-    }
-
-    return elements;
-  };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [content, activeHeadingId]);
 
   return (
-    <div className="markdown-content">
-      {renderMarkdown(content)}
+    <div className="markdown-content prose prose-invert prose-lg max-w-none">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkBreaks]}
+        rehypePlugins={[rehypeHighlight]}
+        components={{
+          h1: ({ children }) => (
+            <h1 className="text-3xl font-bold mb-4 mt-6 text-white border-b border-gray-700 pb-2">
+              {children}
+            </h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="text-2xl font-semibold mb-3 mt-5 text-white">
+              {children}
+            </h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="text-xl font-semibold mb-2 mt-4 text-white">
+              {children}
+            </h3>
+          ),
+          h4: ({ children }) => (
+            <h4 className="text-lg font-semibold mb-2 mt-3 text-white">
+              {children}
+            </h4>
+          ),
+          h5: ({ children }) => (
+            <h5 className="text-base font-semibold mb-2 mt-3 text-white">
+              {children}
+            </h5>
+          ),
+          h6: ({ children }) => (
+            <h6 className="text-sm font-semibold mb-2 mt-3 text-white">
+              {children}
+            </h6>
+          ),
+          p: ({ children }) => (
+            <p className="mb-3 text-gray-300 leading-relaxed">
+              {children}
+            </p>
+          ),
+          ul: ({ children }) => (
+            <ul className="list-disc ml-6 mb-4 space-y-1 text-gray-300">
+              {children}
+            </ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="list-decimal ml-6 mb-4 space-y-1 text-gray-300">
+              {children}
+            </ol>
+          ),
+          li: ({ children }) => (
+            <li className="text-gray-300">
+              {children}
+            </li>
+          ),
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-4 border-blue-500 pl-4 py-2 my-4 bg-blue-500/10 rounded-r-lg">
+              <p className="text-gray-300 italic">{children}</p>
+            </blockquote>
+          ),
+          code: ({ children, className }) => {
+            const isInline = !className;
+            if (isInline) {
+              return (
+                <code className="bg-gray-800/50 text-blue-300 px-1 py-0.5 rounded text-sm font-mono">
+                  {children}
+                </code>
+              );
+            }
+            return (
+              <code className={`text-sm font-mono text-gray-300 ${className || ''}`}>
+                {children}
+              </code>
+            );
+          },
+          pre: ({ children }) => (
+            <pre className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 overflow-x-auto my-4">
+              {children}
+            </pre>
+          ),
+          a: ({ children, href }) => (
+            <a 
+              href={href} 
+              className="text-blue-400 hover:text-blue-300 underline" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              {children}
+            </a>
+          ),
+          strong: ({ children }) => (
+            <strong className="font-semibold text-white">
+              {children}
+            </strong>
+          ),
+          em: ({ children }) => (
+            <em className="italic text-gray-200">
+              {children}
+            </em>
+          ),
+          hr: () => (
+            <hr className="my-6 border-gray-700" />
+          ),
+          table: ({ children }) => (
+            <div className="overflow-x-auto my-4">
+              <table className="min-w-full border border-gray-700 rounded-lg">
+                {children}
+              </table>
+            </div>
+          ),
+          thead: ({ children }) => (
+            <thead className="bg-gray-800/50">
+              {children}
+            </thead>
+          ),
+          tbody: ({ children }) => (
+            <tbody className="divide-y divide-gray-700">
+              {children}
+            </tbody>
+          ),
+          tr: ({ children }) => (
+            <tr className="hover:bg-gray-800/30">
+              {children}
+            </tr>
+          ),
+          th: ({ children }) => (
+            <th className="px-4 py-2 text-left text-sm font-semibold text-white border-b border-gray-700">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
+              {children}
+            </td>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
-} 
+}
