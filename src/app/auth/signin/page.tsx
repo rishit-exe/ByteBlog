@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn, getSession } from "next-auth/react";
+import { signIn, getSession, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, User, Mail, Lock, Sparkles } from "lucide-react";
@@ -14,8 +14,15 @@ export default function SignInPage() {
   const [error, setError] = useState("");
   const [isAnimated, setIsAnimated] = useState(false);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
+    // Redirect logged-in users to home page
+    if (status === "authenticated" && session?.user) {
+      router.push("/");
+      return;
+    }
+
     // Trigger animations on mount
     setIsAnimated(true);
     
@@ -26,7 +33,21 @@ export default function SignInPage() {
     return () => {
       document.body.style.overflow = 'auto';
     };
-  }, []);
+  }, [session, status, router]);
+
+  // Show loading while checking authentication status
+  if (status === "loading") {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Don't render the form if user is authenticated (will redirect)
+  if (status === "authenticated" && session?.user) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

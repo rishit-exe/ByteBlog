@@ -2,14 +2,37 @@
 import Link from "next/link";
 import type { BlogPost } from "@/lib/types";
 import { format } from "date-fns";
-import { Tag, FolderOpen } from "lucide-react";
+import { Tag, FolderOpen, Heart, Bookmark } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { deletePost } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import DeleteConfirmationModal from "./DeleteConfirmationModal";
+import PostCardClient from "./PostCardClient";
 
-export function PostCard({ post }: { post: BlogPost }) {
+export function PostCard({ 
+	post, 
+	engagementData 
+}: { 
+	post: BlogPost;
+	engagementData?: { likeCount: number; bookmarkCount: number };
+}) {
 	const { data: session } = useSession();
+	const router = useRouter();
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	// Mock data - you can replace with real data from your database
 	const mockCategory = "Technology"; // This should come from your post data
 	const mockTags = ["JavaScript", "React", "Next.js"]; // This should come from your post data
+
+	const handleDelete = async () => {
+		try {
+			await deletePost(post.id);
+			router.refresh(); // Refresh the page to update the post list
+		} catch (error) {
+			console.error("Error deleting post:", error);
+			alert("Failed to delete post. Please try again.");
+		}
+	};
 
 	// Function to render content preview by stripping markdown syntax
 	const renderContentPreview = (content: string) => {
@@ -41,54 +64,93 @@ export function PostCard({ post }: { post: BlogPost }) {
 	};
 
 	return (
-		<li className="border border-white/10 rounded-lg p-4 bg-white/5 backdrop-blur-sm">
-			<div className="flex items-center justify-between">
-				<h2 className="text-lg font-medium text-white">
-					<Link href={`/posts/${post.id}`} className="hover:text-blue-300 transition-colors">
-						{post.title}
-					</Link>
-				</h2>
-				<div className="flex gap-2">
-					{/* Only show edit button if current user owns this post */}
-					{session?.user && (session.user as any).id === post.user_id && (
-						<Link href={`/edit/${post.id}`} className="text-blue-400 hover:text-blue-300 transition-colors">Edit</Link>
+		<>
+			<li className="border border-white/10 rounded-lg p-4 bg-white/5 backdrop-blur-sm">
+				<div className="flex items-start justify-between mb-3">
+					<h2 className="text-lg font-medium text-white flex-1 pr-4">
+						<Link href={`/posts/${post.id}`} className="hover:text-blue-300 transition-colors">
+							{post.title}
+						</Link>
+					</h2>
+					{/* Show edit/delete buttons for authors, engagement buttons for non-authors */}
+					{session?.user && (session.user as any).id === post.user_id ? (
+						<div className="flex gap-2 flex-shrink-0">
+							<Link 
+								href={`/edit/${post.id}`} 
+								className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 rounded-md text-sm font-medium transition-all duration-200 border border-blue-500/30 hover:border-blue-500/50"
+							>
+								Edit
+							</Link>
+							<button 
+								onClick={() => setShowDeleteModal(true)}
+								className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 rounded-md text-sm font-medium transition-all duration-200 border border-red-500/30 hover:border-red-500/50"
+							>
+								Delete
+							</button>
+						</div>
+					) : (
+						<PostCardClient 
+							postId={post.id} 
+							isAuthor={false}
+						/>
 					)}
 				</div>
-			</div>
-			
-			{/* Category and Tags */}
-			<div className="flex items-center gap-4 mt-2 mb-3">
-				{mockCategory && (
-					<div className="flex items-center gap-1 text-sm text-gray-300">
-						<FolderOpen className="w-3 h-3" />
-						<span>{mockCategory}</span>
-					</div>
-				)}
-				{mockTags.length > 0 && (
-					<div className="flex items-center gap-1 text-sm text-gray-300">
-						<Tag className="w-3 h-3" />
-						<div className="flex gap-1">
-							{mockTags.map((tag, index) => (
-								<span key={tag} className="text-blue-300">
-									#{tag}{index < mockTags.length - 1 ? ',' : ''}
-								</span>
-							))}
+				
+				{/* Category and Tags */}
+				<div className="flex items-center gap-4 mt-2 mb-3">
+					{mockCategory && (
+						<div className="flex items-center gap-1 text-sm text-gray-300">
+							<FolderOpen className="w-3 h-3" />
+							<span>{mockCategory}</span>
 						</div>
-					</div>
-				)}
-			</div>
-			
-			<p className="text-sm text-gray-400 mt-1">
-				by {post.author} on {format(new Date(post.created_at), "PPpp")}
-			</p>
-			<div className="mt-2">
-				<p className="text-gray-300 line-clamp-2">
-					{renderContentPreview(post.content)}
-				</p>
-				<Link href={`/posts/${post.id}`} className="text-blue-400 hover:text-blue-300 text-sm mt-1 inline-block">
-					Read more →
-				</Link>
-			</div>
-		</li>
+					)}
+					{mockTags.length > 0 && (
+						<div className="flex items-center gap-1 text-sm text-gray-300">
+							<Tag className="w-3 h-3" />
+							<div className="flex gap-1">
+								{mockTags.map((tag, index) => (
+									<span key={tag} className="text-blue-300">
+										#{tag}{index < mockTags.length - 1 ? ',' : ''}
+									</span>
+								))}
+							</div>
+						</div>
+					)}
+				</div>
+				
+				<div className="flex items-center justify-between mt-1">
+					<p className="text-sm text-gray-400">
+						by {post.author} on {format(new Date(post.created_at), "PPpp")}
+					</p>
+					{/* Show engagement metrics for authors */}
+					{session?.user && (session.user as any).id === post.user_id && engagementData && (
+						<div className="flex items-center gap-4 text-sm text-gray-400">
+							<div className="flex items-center gap-1">
+								<Heart className="w-4 h-4 text-red-400" />
+								<span>{engagementData.likeCount}</span>
+							</div>
+							<div className="flex items-center gap-1">
+								<Bookmark className="w-4 h-4 text-blue-400" />
+								<span>{engagementData.bookmarkCount}</span>
+							</div>
+						</div>
+					)}
+				</div>
+				<div className="mt-2">
+					<p className="text-gray-300 line-clamp-2">
+						{renderContentPreview(post.content)}
+					</p>
+					<Link href={`/posts/${post.id}`} className="text-blue-400 hover:text-blue-300 text-sm mt-1 inline-block">
+						Read more →
+					</Link>
+				</div>
+			</li>
+			<DeleteConfirmationModal
+				isOpen={showDeleteModal}
+				onClose={() => setShowDeleteModal(false)}
+				onConfirm={handleDelete}
+				postTitle={post.title}
+			/>
+		</>
 	);
 }

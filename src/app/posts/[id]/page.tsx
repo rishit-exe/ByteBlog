@@ -5,6 +5,10 @@ import type { BlogPost } from "@/lib/types";
 import PostSelectorClient from "./PostSelectorClient";
 import TableOfContents from "@/app/(components)/TableOfContents";
 import MarkdownRenderer from "@/app/(components)/MarkdownRenderer";
+import EngagementButtons from "@/app/(components)/EngagementButtons";
+import { getPostEngagement } from "@/app/actions";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 async function getPost(id: string) {
   const supabase = createServerSupabase();
@@ -30,9 +34,16 @@ export default async function PostDetail({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const post = await getPost(id);
   const recent = await getRecent();
+  const session = await getServerSession(authOptions);
+  
+  // Get engagement data
+  const engagement = await getPostEngagement(id, (session?.user as any)?.id);
+  
+  // Check if current user is the author
+  const isAuthor = session?.user && (session.user as any).id === post.user_id;
 
   return (
-    <main className="max-w-7xl mx-auto p-4 pt-24 text-white">
+    <main className="max-w-7xl mx-auto p-4 text-white">
       <div className="flex gap-8">
         {/* Main Content */}
         <div className="flex-1 max-w-4xl">
@@ -73,6 +84,18 @@ export default async function PostDetail({ params }: { params: Promise<{ id: str
                       #{tag}
                     </span>
                   ))}
+                </div>
+              )}
+
+              {/* Engagement Buttons for Non-Authors */}
+              {!isAuthor && (
+                <div className="mb-6">
+                  <EngagementButtons
+                    postId={post.id}
+                    initialLikeCount={engagement.likeCount}
+                    initialIsLiked={engagement.isLiked}
+                    initialIsBookmarked={engagement.isBookmarked}
+                  />
                 </div>
               )}
 

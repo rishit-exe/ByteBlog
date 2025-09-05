@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev -p 8098 -H 10.3.154.94 --turbopack",
     "build": "next build --turbopack",
-    "start": "next start",
-    "lint": "eslint"
+     "start": "next start -p 8098 -H 10.3.154.94",
+    "lint": "eslint",
+    "homepage": "http://10.3.154.94:8098"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",

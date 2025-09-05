@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Eye, EyeOff, FileText, Eye as EyeIcon } from "lucide-react";
+import { useLenis } from '@studio-freight/react-lenis';
 
 interface MarkdownEditorProps {
   value: string;
@@ -12,6 +13,9 @@ interface MarkdownEditorProps {
 export default function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "preview" | "split">("split");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const lenis = useLenis();
 
   const handleTabChange = (tab: "edit" | "preview" | "split") => {
     setActiveTab(tab);
@@ -19,6 +23,29 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
     if (tab === "edit") setShowPreview(false);
     if (tab === "split") setShowPreview(true);
   };
+
+  // Handle scroll events to prevent page scroll when scrolling inside editor
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      const textarea = textareaRef.current;
+      const preview = previewRef.current;
+      
+      // Check if the scroll is happening inside the textarea or preview
+      if ((textarea && textarea.contains(target)) || (preview && preview.contains(target))) {
+        // Only prevent the event from bubbling up to prevent page scroll
+        e.stopPropagation();
+        // Don't prevent default to allow native scroll behavior
+      }
+    };
+
+    // Add event listener to document
+    document.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      document.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   const renderMarkdownPreview = (content: string) => {
     const lines = content.split('\n');
@@ -204,6 +231,7 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
       {/* Tab Navigation */}
       <div className="flex border-b border-white/20">
         <button
+          type="button"
           onClick={() => handleTabChange("edit")}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "edit"
@@ -215,6 +243,7 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           Edit
         </button>
         <button
+          type="button"
           onClick={() => handleTabChange("preview")}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "preview"
@@ -226,6 +255,7 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           Preview
         </button>
         <button
+          type="button"
           onClick={() => handleTabChange("split")}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "split"
@@ -245,10 +275,12 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           <div className={activeTab === "split" ? "" : "w-full"}>
             <label className="block text-sm mb-2 text-white">Markdown Content</label>
             <textarea
+              ref={textareaRef}
               value={value}
               onChange={(e) => onChange(e.target.value)}
               rows={18}
-              className="w-full border border-white/20 rounded px-3 py-2 bg-white/10 text-white placeholder-gray-400 font-mono text-sm"
+              className="w-full border border-white/20 rounded px-3 py-2 bg-white/10 text-white placeholder-gray-400 font-mono text-sm overflow-y-scroll resize-none"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.3) transparent' }}
               placeholder={placeholder || `# Your Blog Post Title
 
 ## Introduction
@@ -297,7 +329,11 @@ End your post here...`}
         {(activeTab === "preview" || activeTab === "split") && (
           <div className={activeTab === "split" ? "" : "w-full"}>
             <label className="block text-sm mb-2 text-white">Live Preview</label>
-            <div className="border border-white/20 rounded px-4 py-3 bg-white/5 min-h-[500px] overflow-y-auto">
+            <div 
+              ref={previewRef}
+              className="border border-white/20 rounded px-4 py-3 bg-white/5 min-h-[500px] overflow-y-scroll"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.3) transparent' }}
+            >
               {value.trim() ? (
                 <div className="prose prose-invert prose-sm max-w-none">
                   {renderMarkdownPreview(value)}

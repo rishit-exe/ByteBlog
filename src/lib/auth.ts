@@ -1,9 +1,8 @@
-import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { createServerSupabase } from "./supabaseServer";
 
-export const authOptions: NextAuthOptions = {
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -58,7 +57,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, trigger }: any) {
       // Persist user data in JWT token
       if (user) {
         token.id = user.id;
@@ -69,7 +68,7 @@ export const authOptions: NextAuthOptions = {
       // Always return token to maintain session
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       // Send properties to the client
       if (token && session.user) {
         (session.user as any).id = token.id as string;
@@ -81,10 +80,12 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin",
-    signOut: "/auth/signin",
+    signOut: "/",
   },
   // Enable debug in development
   debug: process.env.NODE_ENV === "development",
   // Secret for JWT encryption
   secret: process.env.NEXTAUTH_SECRET,
+  // Explicitly set the URL to prevent localhost redirects
+  url: process.env.NEXTAUTH_URL,
 };

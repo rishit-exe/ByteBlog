@@ -45,7 +45,7 @@ export async function createPost(formData: FormData): Promise<{ error?: string }
     return { error: "Title and content are required" };
   }
 
-  const tags = tagsStr ? tagsStr.split(",").map(tag => tag.trim()).filter(tag => tag) : [];
+  const tags = tagsStr ? JSON.parse(tagsStr) : [];
 
   const supabase = createServerSupabase();
   
@@ -85,7 +85,7 @@ export async function updatePost(id: string, formData: FormData): Promise<{ erro
     return { error: "Title and content are required" };
   }
 
-  const tags = tagsStr ? tagsStr.split(",").map(tag => tag.trim()).filter(tag => tag) : [];
+  const tags = tagsStr ? JSON.parse(tagsStr) : [];
 
   const supabase = createServerSupabase();
   
@@ -170,4 +170,231 @@ export async function getPost(id: string): Promise<BlogPost | null> {
   }
 
   return data;
+}
+
+export async function toggleLike(postId: string): Promise<{ error?: string; liked?: boolean }> {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user) {
+    return { error: "You must be signed in to like posts" };
+  }
+
+  const supabase = createServerSupabase();
+  const userId = (session.user as SessionUser).id;
+
+  // Check if user already liked this post
+  const { data: existingLike } = await supabase
+    .from("likes")
+    .select("id")
+    .eq("post_id", postId)
+    .eq("user_id", userId)
+    .single();
+
+  if (existingLike) {
+    // Unlike the post
+    const { error } = await supabase
+      .from("likes")
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error unliking post:", error);
+      return { error: "Failed to unlike post" };
+    }
+
+    return { liked: false };
+  } else {
+    // Like the post
+    const { error } = await supabase
+      .from("likes")
+      .insert({
+        post_id: postId,
+        user_id: userId,
+      });
+
+    if (error) {
+      console.error("Error liking post:", error);
+      return { error: "Failed to like post" };
+    }
+
+    return { liked: true };
+  }
+}
+
+export async function toggleBookmark(postId: string): Promise<{ error?: string; bookmarked?: boolean }> {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user) {
+    return { error: "You must be signed in to bookmark posts" };
+  }
+
+  const supabase = createServerSupabase();
+  const userId = (session.user as SessionUser).id;
+
+  // Check if user already bookmarked this post
+  const { data: existingBookmark } = await supabase
+    .from("bookmarks")
+    .select("id")
+    .eq("post_id", postId)
+    .eq("user_id", userId)
+    .single();
+
+  if (existingBookmark) {
+    // Remove bookmark
+    const { error } = await supabase
+      .from("bookmarks")
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error removing bookmark:", error);
+      return { error: "Failed to remove bookmark" };
+    }
+
+    return { bookmarked: false };
+  } else {
+    // Add bookmark
+    const { error } = await supabase
+      .from("bookmarks")
+      .insert({
+        post_id: postId,
+        user_id: userId,
+      });
+
+    if (error) {
+      console.error("Error adding bookmark:", error);
+      return { error: "Failed to bookmark post" };
+    }
+
+    return { bookmarked: true };
+  }
+}
+
+export async function getPostsEngagement(postIds: string[]): Promise<Record<string, { likeCount: number; bookmarkCount: number }>> {
+  const supabase = createServerSupabase();
+
+  // Get like counts for all posts
+  const { data: likesData } = await supabase
+    .from("likes")
+    .select("post_id")
+    .in("post_id", postIds);
+
+  // Get bookmark counts for all posts
+  const { data: bookmarksData } = await supabase
+    .from("bookmarks")
+    .select("post_id")
+    .in("post_id", postIds);
+
+  // Count likes and bookmarks per post
+  const engagement: Record<string, { likeCount: number; bookmarkCount: number }> = {};
+  
+  postIds.forEach(postId => {
+    engagement[postId] = {
+      likeCount: likesData?.filter(like => like.post_id === postId).length || 0,
+      bookmarkCount: bookmarksData?.filter(bookmark => bookmark.post_id === postId).length || 0
+    };
+  });
+
+  return engagement;
+}
+
+export async function getPostEngagement(postId: string, userId?: string): Promise<{
+  likeCount: number;
+  isLiked: boolean;
+  isBookmarked: boolean;
+}> {
+  const supabase = createServerSupabase();
+
+  // Get like count
+  const { count: likeCount } = await supabase
+    .from("likes")
+    .select("*", { count: "exact", head: true })
+    .eq("post_id", postId);
+
+  let isLiked = false;
+  let isBookmarked = false;
+
+  // Check if current user liked/bookmarked this post
+  if (userId) {
+    const [likeResult, bookmarkResult] = await Promise.all([
+      supabase
+        .from("likes")
+        .select("id")
+        .eq("post_id", postId)
+        .eq("user_id", userId)
+        .single(),
+      supabase
+        .from("bookmarks")
+        .select("id")
+        .eq("post_id", postId)
+        .eq("user_id", userId)
+        .single()
+    ]);
+
+    isLiked = !!likeResult.data;
+    isBookmarked = !!bookmarkResult.data;
+  }
+
+  return {
+    likeCount: likeCount || 0,
+    isLiked,
+    isBookmarked,
+  };
+}
+
+export async function deleteUserAccount(confirmationText: string, userEmail: string): Promise<{ error?: string }> {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user) {
+    return { error: "You must be signed in to delete your account" };
+  }
+
+  // Verify the confirmation text matches the user's email
+  if (confirmationText !== userEmail) {
+    return { error: "Confirmation text does not match your email address" };
+  }
+
+  const supabase = createServerSupabase();
+  const userId = (session.user as SessionUser).id;
+
+  try {
+    // Use the database function to delete user account and all related data
+    const { error: deleteError } = await supabase.rpc('delete_user_account', {
+      user_id_to_delete: userId
+    });
+
+    if (deleteError) {
+      console.error("Error deleting user account:", deleteError);
+      return { error: "Failed to delete user account" };
+    }
+
+    return { error: undefined };
+  } catch (error) {
+    console.error("Error deleting user account:", error);
+    return { error: "An unexpected error occurred while deleting your account" };
+  }
+}
+
+export async function getSavedPosts(userId: string): Promise<BlogPost[]> {
+  const supabase = createServerSupabase();
+  
+  const { data, error } = await supabase
+    .from("bookmarks")
+    .select(`
+      posts (
+        id, title, content, author, user_id, category, tags, created_at, updated_at
+      )
+    `)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching saved posts:", error);
+    return [];
+  }
+
+  // Extract the posts from the nested structure
+  return data?.map(item => item.posts).filter(Boolean) as BlogPost[] || [];
 }

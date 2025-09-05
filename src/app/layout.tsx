@@ -6,6 +6,9 @@ import LenisProvider from "./(components)/LenisProvider";
 import Particles from "./(components)/Particles";
 import ScrollToTop from "./(components)/ScrollToTop";
 import PillNav from "./(components)/PillNav";
+import MobileQuickNav from "./(components)/MobileQuickNav";
+import Footer from "./(components)/Footer";
+import { MobileNavProvider } from "./(components)/MobileNavContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +36,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen overflow-x-hidden`}
       >
         <SessionProvider>
-          <LenisProvider>
+          <MobileNavProvider>
+            <LenisProvider>
             {/* Background particles covering full viewport */}
             <div className="fixed inset-0 z-0">
               <Particles 
@@ -53,18 +57,23 @@ export default function RootLayout({
             {/* Navigation overlay */}
             <div className="relative z-50">
               <PillNav />
+              <MobileQuickNav />
             </div>
             
-            {/* Main content with proper z-index */}
-            <main className="relative z-10 min-h-screen">
+            {/* Main content with proper z-index and top padding for fixed navbar */}
+            <main className="relative z-10 min-h-screen pt-20">
               {children}
             </main>
+            
+            {/* Footer */}
+            <Footer />
             
             {/* Scroll to top button */}
             <div className="relative z-40">
               <ScrollToTop />
             </div>
-          </LenisProvider>
+            </LenisProvider>
+          </MobileNavProvider>
         </SessionProvider>
       </body>
     </html>

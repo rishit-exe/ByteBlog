@@ -6,9 +6,23 @@ import type { BlogPost } from "@/lib/types";
 
 interface QuickNavigationProps {
   posts: BlogPost[];
+  selectedCategories?: string[];
+  selectedTags?: string[];
+  selectedArchives?: string[];
+  onCategoryToggle?: (category: string) => void;
+  onTagToggle?: (tag: string) => void;
+  onArchiveToggle?: (archive: string) => void;
 }
 
-export default function QuickNavigation({ posts }: QuickNavigationProps) {
+export default function QuickNavigation({ 
+  posts, 
+  selectedCategories = [], 
+  selectedTags = [], 
+  selectedArchives = [],
+  onCategoryToggle,
+  onTagToggle,
+  onArchiveToggle
+}: QuickNavigationProps) {
   const [expandedSections, setExpandedSections] = useState({
     categories: true,
     tags: true,
@@ -103,9 +117,21 @@ export default function QuickNavigation({ posts }: QuickNavigationProps) {
           <div className="space-y-2 ml-6">
             {categories.length > 0 ? (
               categories.map((category) => (
-                <div key={category.name} className="flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors cursor-pointer">
+                <div 
+                  key={category.name} 
+                  onClick={() => onCategoryToggle?.(category.name)}
+                  className={`flex items-center justify-between text-sm transition-colors cursor-pointer rounded-lg px-2 py-1 ${
+                    selectedCategories.includes(category.name)
+                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
                   <span>{category.name}</span>
-                  <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    selectedCategories.includes(category.name)
+                      ? "bg-blue-500/30 text-blue-200"
+                      : "bg-white/10"
+                  }`}>
                     {category.count}
                   </span>
                 </div>
@@ -135,9 +161,21 @@ export default function QuickNavigation({ posts }: QuickNavigationProps) {
           <div className="space-y-2 ml-6">
             {tags.length > 0 ? (
               tags.map((tag) => (
-                <div key={tag.name} className="flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors cursor-pointer">
+                <div 
+                  key={tag.name} 
+                  onClick={() => onTagToggle?.(tag.name)}
+                  className={`flex items-center justify-between text-sm transition-colors cursor-pointer rounded-lg px-2 py-1 ${
+                    selectedTags.includes(tag.name)
+                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
                   <span>#{tag.name}</span>
-                  <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    selectedTags.includes(tag.name)
+                      ? "bg-blue-500/30 text-blue-200"
+                      : "bg-white/10"
+                  }`}>
                     {tag.count}
                   </span>
                 </div>
@@ -167,9 +205,21 @@ export default function QuickNavigation({ posts }: QuickNavigationProps) {
           <div className="space-y-2 ml-6">
             {archives.length > 0 ? (
               archives.map((archive) => (
-                <div key={archive.month} className="flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors cursor-pointer">
+                <div 
+                  key={archive.month} 
+                  onClick={() => onArchiveToggle?.(archive.month)}
+                  className={`flex items-center justify-between text-sm transition-colors cursor-pointer rounded-lg px-2 py-1 ${
+                    selectedArchives.includes(archive.month)
+                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
                   <span>{archive.month}</span>
-                  <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    selectedArchives.includes(archive.month)
+                      ? "bg-blue-500/30 text-blue-200"
+                      : "bg-white/10"
+                  }`}>
                     {archive.count}
                   </span>
                 </div>

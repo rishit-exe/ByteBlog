@@ -1,15 +1,45 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Tag, FolderOpen, Archive, ChevronDown, ChevronRight, Menu, X } from "lucide-react";
 import type { BlogPost } from "@/lib/types";
+import { useMobileNav } from "./MobileNavContext";
 
 interface MobileQuickNavProps {
-  posts: BlogPost[];
+  // Props are now optional since we use context
+  posts?: BlogPost[];
+  selectedCategories?: string[];
+  selectedTags?: string[];
+  selectedArchives?: string[];
+  onCategoryToggle?: (category: string) => void;
+  onTagToggle?: (tag: string) => void;
+  onArchiveToggle?: (archive: string) => void;
 }
 
-export default function MobileQuickNav({ posts }: MobileQuickNavProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export interface MobileQuickNavRef {
+  closeMenu: () => void;
+}
+
+const MobileQuickNav = forwardRef<MobileQuickNavRef, MobileQuickNavProps>(({ 
+  posts: propPosts, 
+  selectedCategories: propSelectedCategories, 
+  selectedTags: propSelectedTags, 
+  selectedArchives: propSelectedArchives,
+  onCategoryToggle: propOnCategoryToggle,
+  onTagToggle: propOnTagToggle,
+  onArchiveToggle: propOnArchiveToggle
+}, ref) => {
+  // Use context if available, otherwise fall back to props
+  const context = useMobileNav();
+  const posts = propPosts || context?.posts || [];
+  const selectedCategories = propSelectedCategories || context?.selectedCategories || [];
+  const selectedTags = propSelectedTags || context?.selectedTags || [];
+  const selectedArchives = propSelectedArchives || context?.selectedArchives || [];
+  const onCategoryToggle = propOnCategoryToggle || context?.toggleCategory || (() => {});
+  const onTagToggle = propOnTagToggle || context?.toggleTag || (() => {});
+  const onArchiveToggle = propOnArchiveToggle || context?.toggleArchive || (() => {});
+  const isOpen = context?.isQuickNavOpen || false;
+  const setIsOpen = context?.setIsQuickNavOpen || (() => {});
   const [expandedSections, setExpandedSections] = useState({
     categories: true,
     tags: true,
@@ -22,6 +52,11 @@ export default function MobileQuickNav({ posts }: MobileQuickNavProps) {
       [section]: !prev[section]
     }));
   };
+
+  // Expose close function to parent via ref
+  useImperativeHandle(ref, () => ({
+    closeMenu: () => setIsOpen(false)
+  }));
 
   // Calculate real-time data from posts
   const { categories, tags, archives } = useMemo(() => {
@@ -84,19 +119,19 @@ export default function MobileQuickNav({ posts }: MobileQuickNavProps) {
 
   return (
     <>
-      {/* Mobile Toggle Button */}
+      {/* Mobile Toggle Button - Hidden by default, will be shown inline in home page */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-20 right-4 z-50 p-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white hover:bg-white/20 transition-all duration-300"
+        className="lg:hidden hidden p-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all duration-300"
         aria-label="Toggle navigation"
       >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {isOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
       </button>
 
       {/* Mobile Navigation Overlay */}
       {isOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm">
-          <div className="absolute top-20 right-4 w-72 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 max-h-[80vh] overflow-y-auto">
+          <div className="absolute top-32 left-1/2 transform -translate-x-1/2 w-80 max-w-[calc(100vw-2rem)] bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 max-h-[70vh] overflow-y-auto">
             <h2 className="text-lg font-semibold mb-4 text-white">Quick Navigation</h2>
             
             {/* Categories */}
@@ -116,9 +151,24 @@ export default function MobileQuickNav({ posts }: MobileQuickNavProps) {
               {expandedSections.categories && (
                 <div className="space-y-2 ml-6">
                   {categories.map((category) => (
-                    <div key={category.name} className="flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors cursor-pointer">
+                    <div 
+                      key={category.name} 
+                      onClick={() => {
+                        onCategoryToggle?.(category.name);
+                        setIsOpen(false);
+                      }}
+                      className={`flex items-center justify-between text-sm transition-colors cursor-pointer rounded-lg px-2 py-1 ${
+                        selectedCategories.includes(category.name)
+                          ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                          : "text-gray-300 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
                       <span>{category.name}</span>
-                      <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        selectedCategories.includes(category.name)
+                          ? "bg-blue-500/30 text-blue-200"
+                          : "bg-white/10"
+                      }`}>
                         {category.count}
                       </span>
                     </div>
@@ -144,9 +194,24 @@ export default function MobileQuickNav({ posts }: MobileQuickNavProps) {
               {expandedSections.tags && (
                 <div className="space-y-2 ml-6">
                   {tags.map((tag) => (
-                    <div key={tag.name} className="flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors cursor-pointer">
+                    <div 
+                      key={tag.name} 
+                      onClick={() => {
+                        onTagToggle?.(tag.name);
+                        setIsOpen(false);
+                      }}
+                      className={`flex items-center justify-between text-sm transition-colors cursor-pointer rounded-lg px-2 py-1 ${
+                        selectedTags.includes(tag.name)
+                          ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                          : "text-gray-300 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
                       <span>#{tag.name}</span>
-                      <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        selectedTags.includes(tag.name)
+                          ? "bg-blue-500/30 text-blue-200"
+                          : "bg-white/10"
+                      }`}>
                         {tag.count}
                       </span>
                     </div>
@@ -172,9 +237,24 @@ export default function MobileQuickNav({ posts }: MobileQuickNavProps) {
               {expandedSections.archives && (
                 <div className="space-y-2 ml-6">
                   {archives.map((archive) => (
-                    <div key={archive.month} className="flex items-center justify-between text-sm text-gray-300 hover:text-white transition-colors cursor-pointer">
+                    <div 
+                      key={archive.month} 
+                      onClick={() => {
+                        onArchiveToggle?.(archive.month);
+                        setIsOpen(false);
+                      }}
+                      className={`flex items-center justify-between text-sm transition-colors cursor-pointer rounded-lg px-2 py-1 ${
+                        selectedArchives.includes(archive.month)
+                          ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                          : "text-gray-300 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
                       <span>{archive.month}</span>
-                      <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        selectedArchives.includes(archive.month)
+                          ? "bg-blue-500/30 text-blue-200"
+                          : "bg-white/10"
+                      }`}>
                         {archive.count}
                       </span>
                     </div>
@@ -187,4 +267,8 @@ export default function MobileQuickNav({ posts }: MobileQuickNavProps) {
       )}
     </>
   );
-} 
+});
+
+MobileQuickNav.displayName = 'MobileQuickNav';
+
+export default MobileQuickNav; 
