@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Sparkle } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { loadFull } from "tsparticles";
 import type { ISourceOptions } from "@tsparticles/engine";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { useLenisNavigation } from "@/app/(components)/useLenisNavigation";
+import AuthMessageModal from "@/app/(components)/AuthMessageModal";
 
 const options: ISourceOptions = {
   key: "star",
@@ -43,9 +45,11 @@ const options: ISourceOptions = {
 };
 
 export default function AiButton({ href, label = "New Post" }: { href?: string; label?: string }) {
+  const { data: session } = useSession();
   const { navigateWithLenis } = useLenisNavigation();
   const [particleState, setParticlesReady] = useState<"loaded" | "ready">();
   const [isHovering, setIsHovering] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     initParticlesEngine(async (engine) => {
@@ -61,6 +65,10 @@ export default function AiButton({ href, label = "New Post" }: { href?: string; 
   }, [isHovering]);
 
   const handleClick = () => {
+    if (!session) {
+      setShowAuthModal(true);
+      return;
+    }
     if (href) navigateWithLenis(href);
   };
 
@@ -88,6 +96,14 @@ export default function AiButton({ href, label = "New Post" }: { href?: string; 
           options={modifiedOptions}
         />
       )}
+
+      {/* Auth Message Modal */}
+      <AuthMessageModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        message="You must be signed in to create new posts"
+        type="warning"
+      />
     </button>
   );
 }

@@ -2,7 +2,9 @@
 
 import { useState, memo, useCallback } from "react";
 import { Heart, Bookmark } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { toggleLike, toggleBookmark } from "@/app/actions";
+import AuthMessageModal from "./AuthMessageModal";
 
 interface EngagementButtonsProps {
   postId: string;
@@ -17,13 +19,22 @@ const EngagementButtons = memo(function EngagementButtons({
   initialIsLiked,
   initialIsBookmarked,
 }: EngagementButtonsProps) {
+  const { data: session } = useSession();
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
 
   const handleLike = useCallback(async () => {
     if (isLoading) return;
+    
+    if (!session) {
+      setAuthMessage("You must be signed in to like posts");
+      setShowAuthModal(true);
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -40,10 +51,16 @@ const EngagementButtons = memo(function EngagementButtons({
     } finally {
       setIsLoading(false);
     }
-  }, [postId, isLoading]);
+  }, [postId, isLoading, session]);
 
   const handleBookmark = useCallback(async () => {
     if (isLoading) return;
+    
+    if (!session) {
+      setAuthMessage("You must be signed in to save posts");
+      setShowAuthModal(true);
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -59,7 +76,7 @@ const EngagementButtons = memo(function EngagementButtons({
     } finally {
       setIsLoading(false);
     }
-  }, [postId, isLoading]);
+  }, [postId, isLoading, session]);
 
   return (
     <div className="flex items-center gap-3">
@@ -96,6 +113,14 @@ const EngagementButtons = memo(function EngagementButtons({
           {isBookmarked ? "Saved" : "Save"}
         </span>
       </button>
+
+      {/* Auth Message Modal */}
+      <AuthMessageModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        message={authMessage}
+        type="warning"
+      />
     </div>
   );
 });
