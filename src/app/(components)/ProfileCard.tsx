@@ -302,7 +302,7 @@ const ProfileCardComponent: React.FC<ProfileCardProps> = ({
       
       <section 
         ref={cardRef} 
-        className="h-[70svh] max-h-[480px] grid aspect-[0.718] rounded-[30px] relative bg-blend-color-dodge transition-transform duration-1000 transform-gpu overflow-hidden shadow-2xl pc-card"
+        className="h-[75svh] max-h-[520px] grid aspect-[0.718] rounded-[30px] relative bg-blend-color-dodge transition-transform duration-1000 transform-gpu overflow-hidden shadow-2xl pc-card"
         style={{
           backgroundBlendMode: 'color-dodge, normal, normal, normal',
           boxShadow: 'rgba(0, 0, 0, 0.8) calc((var(--pointer-from-left) * 10px) - 3px) calc((var(--pointer-from-top) * 20px) - 6px) 20px -5px',
@@ -404,7 +404,7 @@ const ProfileCardComponent: React.FC<ProfileCardProps> = ({
           >
             <div className="w-full absolute top-12 flex flex-col">
               <h3 
-                className="font-semibold m-0 text-[min(5svh,3em)] bg-gradient-to-b from-white via-blue-100 to-blue-200 bg-clip-text text-transparent drop-shadow-lg"
+                className="font-semibold m-0 text-[min(4.5svh,2.8em)] bg-gradient-to-b from-white via-blue-100 to-blue-200 bg-clip-text text-transparent drop-shadow-lg whitespace-nowrap"
                 style={{
                   backgroundSize: '1em 1.5em',
                   WebkitTextFillColor: 'transparent',
@@ -414,7 +414,7 @@ const ProfileCardComponent: React.FC<ProfileCardProps> = ({
                 {name}
               </h3>
               <p 
-                className="font-semibold relative -top-3 whitespace-nowrap text-base m-0 mx-auto w-min bg-gradient-to-b from-white via-slate-100 to-slate-200 bg-clip-text text-transparent drop-shadow-md"
+                className="font-semibold relative -top-3 whitespace-nowrap text-sm m-0 mx-auto w-min bg-gradient-to-b from-white via-slate-100 to-slate-200 bg-clip-text text-transparent drop-shadow-md"
                 style={{
                   backgroundSize: '1em 1.5em',
                   WebkitTextFillColor: 'transparent',
@@ -508,22 +508,40 @@ const ProfileCardComponent: React.FC<ProfileCardProps> = ({
         
         @media (max-width: 768px) {
           .pc-card {
-            height: 65svh;
-            max-height: 420px;
+            height: 70svh;
+            max-height: 450px;
+          }
+          .pc-card h3 {
+            font-size: min(4svh, 2.5em) !important;
+          }
+          .pc-card p {
+            font-size: 1rem !important;
           }
         }
         
         @media (max-width: 480px) {
           .pc-card {
-            height: 55svh;
-            max-height: 350px;
+            height: 60svh;
+            max-height: 380px;
+          }
+          .pc-card h3 {
+            font-size: min(3.5svh, 2.2em) !important;
+          }
+          .pc-card p {
+            font-size: 0.875rem !important;
           }
         }
         
         @media (max-width: 320px) {
           .pc-card {
-            height: 50svh;
-            max-height: 300px;
+            height: 55svh;
+            max-height: 320px;
+          }
+          .pc-card h3 {
+            font-size: min(3svh, 1.8em) !important;
+          }
+          .pc-card p {
+            font-size: 0.75rem !important;
           }
         }
       `}</style>
