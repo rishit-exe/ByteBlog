@@ -77,7 +77,7 @@ export function PostCard({
 						</Link>
 					</h2>
 					{/* Show edit/delete buttons for authors, engagement buttons for non-authors */}
-					{session?.user && (session.user as any).id === post.user_id ? (
+					{session?.user && (session.user as any)?.id === post?.user_id ? (
 						<div className="flex gap-2 flex-shrink-0">
 							<Link 
 								href={`/edit/${post.id}`} 
@@ -136,7 +136,7 @@ export function PostCard({
 						by {post.author} on {format(new Date(post.created_at), "PPpp")}
 					</p>
 					{/* Show engagement metrics for authors */}
-					{session?.user && (session.user as any).id === post.user_id && engagementData && (
+					{session?.user && (session.user as any)?.id === post?.user_id && engagementData && (
 						<div className="flex items-center gap-4 text-sm text-gray-400">
 							<div className="flex items-center gap-1">
 								<Heart className="w-4 h-4 text-red-400" />

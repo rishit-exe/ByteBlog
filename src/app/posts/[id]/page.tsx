@@ -10,6 +10,9 @@ import { getPostEngagement } from "@/app/actions";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
+// Add caching for better performance
+export const revalidate = 300; // Revalidate every 5 minutes
+
 async function getPost(id: string) {
   const supabase = createServerSupabase();
   const { data } = await supabase
@@ -17,10 +20,6 @@ async function getPost(id: string) {
     .select("id,title,content,author,created_at,category,tags")
     .eq("id", id)
     .single();
-  
-  // Debug: Log the raw created_at value
-  console.log("Raw created_at from DB:", data?.created_at);
-  console.log("Parsed date:", new Date(data?.created_at));
   
   return data as BlogPost;
 }
@@ -37,15 +36,19 @@ async function getRecent(limit = 5) {
 
 export default async function PostDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const post = await getPost(id);
-  const recent = await getRecent();
-  const session = await getServerSession(authOptions);
   
-  // Get engagement data
-  const engagement = await getPostEngagement(id, (session?.user as any)?.id);
+  // Fetch all data in parallel for better performance
+  const [post, recent, session, engagement] = await Promise.all([
+    getPost(id),
+    getRecent(),
+    getServerSession(authOptions),
+    getServerSession(authOptions).then(session => 
+      getPostEngagement(id, (session?.user as any)?.id)
+    )
+  ]);
   
   // Check if current user is the author
-  const isAuthor = session?.user && (session.user as any).id === post.user_id;
+  const isAuthor = session?.user && (session.user as any)?.id === post?.user_id;
 
   return (
     <main className="max-w-7xl mx-auto p-4 text-white">

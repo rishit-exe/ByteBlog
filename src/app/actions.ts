@@ -29,23 +29,17 @@ export async function fetchPosts(): Promise<BlogPost[]> {
   // Sort by created_at descending and filter to only the columns we need
   const sortedPosts = (data || [])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map(post => {
-      // Debug: Log the raw created_at value for home page
-      console.log("Home page - Raw created_at from DB:", post.created_at);
-      console.log("Home page - Parsed date:", new Date(post.created_at));
-      
-      return {
-        id: post.id,
-        title: post.title,
-        content: post.content,
-        author: post.author,
-        user_id: post.user_id,
-        category: post.category,
-        tags: post.tags,
-        created_at: post.created_at,
-        updated_at: post.updated_at
-      };
-    });
+    .map(post => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author: post.author,
+      user_id: post.user_id,
+      category: post.category,
+      tags: post.tags,
+      created_at: post.created_at,
+      updated_at: post.updated_at
+    }));
   
   return sortedPosts;
 }
@@ -453,6 +447,68 @@ export async function getPostsEngagement(postIds: string[]): Promise<Record<stri
   return engagement;
 }
 
+export async function getPostsEngagementWithUserData(postIds: string[], userId?: string): Promise<Record<string, { 
+  likeCount: number; 
+  bookmarkCount: number; 
+  isLiked: boolean; 
+  isBookmarked: boolean; 
+}>> {
+  const supabase = createServerSupabase();
+
+  // Get like counts for all posts
+  const { data: likesData } = await supabase
+    .from("likes")
+    .select("post_id")
+    .in("post_id", postIds);
+
+  // Get bookmark counts for all posts
+  const { data: bookmarksData } = await supabase
+    .from("bookmarks")
+    .select("post_id")
+    .in("post_id", postIds);
+
+  // Get user's likes and bookmarks for all posts in one query
+  let userLikes: string[] = [];
+  let userBookmarks: string[] = [];
+
+  if (userId) {
+    const [userLikesResult, userBookmarksResult] = await Promise.all([
+      supabase
+        .from("likes")
+        .select("post_id")
+        .in("post_id", postIds)
+        .eq("user_id", userId),
+      supabase
+        .from("bookmarks")
+        .select("post_id")
+        .in("post_id", postIds)
+        .eq("user_id", userId)
+    ]);
+
+    userLikes = userLikesResult.data?.map(like => like.post_id) || [];
+    userBookmarks = userBookmarksResult.data?.map(bookmark => bookmark.post_id) || [];
+  }
+
+  // Count likes and bookmarks per post and check user's status
+  const engagement: Record<string, { 
+    likeCount: number; 
+    bookmarkCount: number; 
+    isLiked: boolean; 
+    isBookmarked: boolean; 
+  }> = {};
+  
+  postIds.forEach(postId => {
+    engagement[postId] = {
+      likeCount: likesData?.filter(like => like.post_id === postId).length || 0,
+      bookmarkCount: bookmarksData?.filter(bookmark => bookmark.post_id === postId).length || 0,
+      isLiked: userLikes.includes(postId),
+      isBookmarked: userBookmarks.includes(postId)
+    };
+  });
+
+  return engagement;
+}
+
 export async function getPostEngagement(postId: string, userId?: string): Promise<{
   likeCount: number;
   isLiked: boolean;
@@ -494,8 +550,6 @@ export async function getPostEngagement(postId: string, userId?: string): Promis
       isLiked = !!likeResult.data;
       isBookmarked = !!bookmarkResult.data;
     }
-
-    console.log(`Post ${postId} engagement:`, { likeCount: likeCount || 0, isLiked, isBookmarked });
 
     return {
       likeCount: likeCount || 0,
